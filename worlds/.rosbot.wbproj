@@ -8,7 +8,7 @@ orthographicViewHeight: 1
 textFiles: 0 "controllers/Rosbot_controller/Rosbot_controller.py"
 consoles: Console:All:All
 renderingDevicePerspectives: Rosbot:camera depth;0;0.895833;0;0
-renderingDevicePerspectives: Rosbot:camera rgb;0;0.895833;0;0
+renderingDevicePerspectives: Rosbot:camera rgb;1;0.579688;0;0
 renderingDevicePerspectives: laptop(1):display;0;1;0;0
 renderingDevicePerspectives: laptop(2):display;0;1;0;0
 renderingDevicePerspectives: laptop:display;0;1;0;0

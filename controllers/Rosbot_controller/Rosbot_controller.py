@@ -20,6 +20,9 @@ def run_robot(robot):
     rear_left_motor.setVelocity(0.0)
     rear_right_motor.setVelocity(0.0)
     
+    camera = robot.getDevice('camera rgb')
+    camera.enable(timestep)
+    
     # Allow some time for initialization
     for i in range(10):
         robot.step(timestep)
