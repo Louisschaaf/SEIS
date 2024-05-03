@@ -21,12 +21,13 @@ def run_robot(robot):
     rear_right_motor.setVelocity(0.0)
     
     camera = robot.getDevice('camera rgb')
+    lidar = robot.getDevice('lidar')
     camera.enable(timestep)
-    
+    lidar.enable(timestep)
+    lidar.enablePointCloud()
     # Allow some time for initialization
     for i in range(10):
         robot.step(timestep)
-    
     # Rotate in place: one wheel forward, the other backward
     front_left_motor.setVelocity(5)    # Positive speed for left wheel
     front_right_motor.setVelocity(5)  # Negative speed for right wheel to rotate in place
@@ -35,6 +36,8 @@ def run_robot(robot):
     
     # Keep rotating for a few seconds
     for i in range(100):
+        #image = lidar.getRangeImage()
+        #print("{}".format(image))
         if robot.step(timestep) == -1:
             break
 
