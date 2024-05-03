@@ -1,0 +1,78 @@
+body {
+    font-family: 'Courier New', Courier, monospace;
+    background-color: #f0f0f0;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+}
+
+.container {
+    max-width: 1000px;
+    margin: auto;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+}
+
+h1, h2 {
+    text-align: center;
+}
+
+.buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 20px;
+}
+
+.row {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
+.control-btn {
+    background: #007BFF;
+    border: none;
+    padding: 15px 30px;
+    margin: 5px;
+    border-radius: 50%;
+    font-size: 24px;
+    color: white;
+    cursor: pointer;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.control-btn:hover {
+    background: #0056b3;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+}
+
+.terminal {
+    background-color: #333;
+    color: #0f0;
+    padding: 20px;
+    margin-top: 20px;
+    border-radius: 10px;
+    font-family: 'Courier New', monospace;
+}
+
+.camera-feed {
+    text-align: center;
+    margin-top: 20px;
+    padding: 20px;
+    border-radius: 10px;
+    background: #e9e9e9;
+}
+
+.camera-feed img {
+    width: 100%;
+    height: auto;
+    border-radius: 5px;
+}
