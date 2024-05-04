@@ -43,7 +43,7 @@ def setup_motors(robot):
     return motors
 
 async def run_websocket_server(robot, motors):
-    async with websockets.serve(functools.partial(control_robot, robot=robot, motors=motors), "localhost", 8765):
+    async with websockets.serve(functools.partial(control_robot, robot=robot, motors=motors), "0.0.0.0", 8765):
         await asyncio.Future()  # This will run forever unless cancelled
 
 def main(robot):
