@@ -1,4 +1,4 @@
-var ws = new WebSocket("ws://0.0.0.0:8765"); // Zorg ervoor dat dit overeenkomt met het adres en de poort van je WebSocket-server in de Webots-controller
+var ws = new WebSocket("ws://localhost:8765/"); // Make sure this matches the address and port of your WebSocket server in the Webots controller
 
 ws.onopen = function() {
     console.log('WebSocket Connection Established');
@@ -9,7 +9,13 @@ ws.onerror = function(error) {
 };
 
 ws.onmessage = function(e) {
-    console.log('Server: ' + e.data);
+    var data = e.data;
+    if (data.startsWith("/9j/")) { // Check if the string looks like base64 JPEG data
+        var img = document.getElementById('robotCameraFeed');
+        img.src = 'data:image/jpeg;base64,' + data;
+    } else {
+        console.log('Server:', data);
+    }
 };
 
 function sendCommand(command) {
