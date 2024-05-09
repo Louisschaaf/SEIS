@@ -1,36 +1,16 @@
 from controller import Robot
 from robot_package.motors import setup_motors
-from robot_package.camera import setup_camera, capture_image
+from robot_package.camera import setup_camera, capture_image, send_images
+from robot_package.sensors import setup_accelerometer, read_accelerometer, send_accelerometer_data, send_velocity_data
 import websockets
 import asyncio
 import functools
-from PIL import Image
-import io
-import base64
 
-async def send_images(camera, websocket):
-    image_width = camera.getWidth()
-    image_height = camera.getHeight()
-    image_size = (image_width, image_height)
-    while True:
-        image = capture_image(camera)
-        if image is not None:
-            try:
-                # Ensure image data is correctly formatted
-                image = Image.frombytes("RGB", image_size, image)
-                with io.BytesIO() as image_bytes:
-                    image.save(image_bytes, format="JPEG")
-                    encoded_image = base64.b64encode(image_bytes.getvalue()).decode("utf-8")
-                    await websocket.send(encoded_image)
-            except Exception as e:
-                print(f"Failed to process or send image: {e}")
-                # Optionally, add reconnect or retry logic here
-        await asyncio.sleep(0.1)  # Adjust delay to match desired frame rate
-
-async def control_robot(websocket, path, robot, motors, camera):
+async def control_robot(websocket, path, robot, motors, camera, accelerometer):
     print("WebSocket session started.")
     image_task = asyncio.create_task(send_images(camera, websocket))  # Start sending images
-
+    accelerometer_task = asyncio.create_task(send_accelerometer_data(accelerometer, websocket))  # Start sending accelerometer data
+    velocity_task = asyncio.create_task(send_velocity_data(accelerometer, websocket))  # Start sending velocity data
     try:
         async for message in websocket:
             print(f"Received command: {message}")
@@ -57,20 +37,22 @@ async def control_robot(websocket, path, robot, motors, camera):
                 motor.setVelocity(velocity)
     finally:
         image_task.cancel()  # Ensure image task is cancelled
+        accelerometer_task.cancel()
+        velocity_task.cancel()
 
-async def run_websocket_server(robot, motors, camera):
-    async with websockets.serve(functools.partial(control_robot, robot=robot, motors=motors, camera=camera), "0.0.0.0", 8765):
+async def run_websocket_server(robot, motors, camera, accelerometer):
+    async with websockets.serve(functools.partial(control_robot, robot=robot, motors=motors, camera=camera, accelerometer=accelerometer), "0.0.0.0", 8765):
         await asyncio.Future()  # This will run forever unless cancelled
 
 def main(robot):
     timestep = int(robot.getBasicTimeStep())
     motors = setup_motors(robot)
     camera = setup_camera(robot)
-
+    accelerometer = setup_accelerometer(robot)
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
-    server_task = loop.create_task(run_websocket_server(robot, motors, camera))
+    server_task = loop.create_task(run_websocket_server(robot, motors, camera, accelerometer))
 
     try:
         while robot.step(timestep) != -1:

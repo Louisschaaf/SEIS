@@ -13,7 +13,41 @@ ws.onmessage = function(e) {
     if (data.startsWith("/9j/")) { // Check if the string looks like base64 JPEG data
         var img = document.getElementById('robotCameraFeed');
         img.src = 'data:image/jpeg;base64,' + data;
-    } else {
+    }
+    else if (data.startsWith("accelerometer: ")) {
+        // Extract and clean up the accelerometer data
+        var accelDataString = data.replace("accelerometer: [", "").replace("]", "");
+        var accelData = accelDataString.split(", ").map(parseFloat);
+    
+        // Extract individual components
+        var x = accelData[0];
+        var y = accelData[1];
+        var z = accelData[2];
+    
+        // Assume the gravity vector is in the Z direction
+        var gravityVector = [0, 0, 9.81];
+    
+        // Subtract gravity from the accelerometer data
+        var nonGravitationalAccel = [
+            x - gravityVector[0],
+            y - gravityVector[1],
+            z - gravityVector[2]
+        ];
+    
+        // Compute the magnitude of the non-gravitational acceleration
+        var accelNonGravity = Math.sqrt(
+            nonGravitationalAccel[0] * nonGravitationalAccel[0] +
+            nonGravitationalAccel[1] * nonGravitationalAccel[1] +
+            nonGravitationalAccel[2] * nonGravitationalAccel[2]
+        );
+    
+        // Display the non-gravitational magnitude in the HTML element
+        document.getElementById('accelerometer').innerHTML = "Accelerometer (Non-Gravitational): " + accelNonGravity.toFixed(2) + " m/s²";
+    }
+    else if (data.startsWith("velocity: ")) {
+        console.log(data);
+    }
+    else {
         console.log('Server:', data);
     }
 };
