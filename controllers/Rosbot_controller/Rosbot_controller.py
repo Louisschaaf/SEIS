@@ -1,15 +1,27 @@
 from controller import Robot
 from robot_package.motors import setup_motors
 from robot_package.camera import setup_camera, capture_image, send_images
-from robot_package.sensors import setup_accelerometer, read_accelerometer, send_accelerometer_data, send_velocity_data, send_lidar_data, setup_lidar
+from robot_package.sensors import setup_accelerometer, read_accelerometer, send_accelerometer_data, send_velocity_data, send_lidar_data, setup_lidar, read_distance_sensors, setup_distance_sensors
 import websockets
 import asyncio
 import functools
 
-async def control_robot(websocket, path, robot, motors, camera, accelerometer, position_sensors, prev_positions, timestep):
+BRAKING_DISTANCE = 0.3  # Distance at which the robot will stop automatically
+
+async def automatic_braking(motors, distance_sensors):
+    while True:
+        distances = read_distance_sensors(distance_sensors)
+        if any(distance < BRAKING_DISTANCE for distance in distances.values()):
+            for motor in motors.values():
+                motor.setVelocity(0.0)
+            print("Automatic braking triggered due to obstacle detection")
+        await asyncio.sleep(0.1)
+
+async def control_robot(websocket, path, robot, motors, camera, accelerometer, position_sensors, prev_positions, timestep, distance_sensors):
     print("WebSocket session started.")
     accelerometer_task = asyncio.create_task(send_accelerometer_data(accelerometer, websocket))  # Start sending accelerometer data
     velocity_task = asyncio.create_task(send_velocity_data(position_sensors, websocket, prev_positions, timestep))  # Start sending velocity data
+    braking_task = asyncio.create_task(automatic_braking(motors, distance_sensors))  # Start automatic braking
     lidar = None
     lidar_task = None
     try:
@@ -51,12 +63,13 @@ async def control_robot(websocket, path, robot, motors, camera, accelerometer, p
         image_task.cancel()  # Ensure image task is cancelled
         accelerometer_task.cancel()
         velocity_task.cancel()
+        braking_task.cancel()
         if lidar is not None:
             lidar.disable()
             lidar_task.cancel()
 
-async def run_websocket_server(robot, motors, camera, accelerometer, position_sensors, prev_positions, timestep):
-    async with websockets.serve(functools.partial(control_robot, robot=robot, motors=motors, camera=camera, accelerometer=accelerometer, position_sensors=position_sensors, prev_positions=prev_positions, timestep=timestep), "0.0.0.0", 8765):
+async def run_websocket_server(robot, motors, camera, accelerometer, position_sensors, prev_positions, timestep, distance_sensors):
+    async with websockets.serve(functools.partial(control_robot, robot=robot, motors=motors, camera=camera, accelerometer=accelerometer, position_sensors=position_sensors, prev_positions=prev_positions, timestep=timestep, distance_sensors=distance_sensors), "0.0.0.0", 8765):
         await asyncio.Future()  # This will run forever unless cancelled
 
 def main(robot):
@@ -64,11 +77,12 @@ def main(robot):
     motors, position_sensors, prev_positions = setup_motors(robot)
     camera = setup_camera(robot)
     accelerometer = setup_accelerometer(robot)
+    distance_sensors = setup_distance_sensors(robot)
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
-    server_task = loop.create_task(run_websocket_server(robot, motors, camera, accelerometer, position_sensors, prev_positions, timestep))
+    server_task = loop.create_task(run_websocket_server(robot, motors, camera, accelerometer, position_sensors, prev_positions, timestep, distance_sensors))
 
     try:
         while robot.step(timestep) != -1:

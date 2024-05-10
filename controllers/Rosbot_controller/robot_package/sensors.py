@@ -65,3 +65,18 @@ async def send_lidar_data(lidar, websocket, timestep):
         await websocket.send(f"Lidar Point Cloud: {point_cloud_data}")
 
         await asyncio.sleep(timestep / 1000.0) 
+
+def setup_distance_sensors(robot):
+    sensors = {
+        'front left': robot.getDevice('front left distance sensor'),
+        'front right': robot.getDevice('front right distance sensor'),
+        'rear left': robot.getDevice('rear left distance sensor'),
+        'rear right': robot.getDevice('rear right distance sensor'),
+    }
+    for sensor in sensors.values():
+        sensor.enable(int(robot.getBasicTimeStep()))
+    print("Distance sensors enabled")
+    return sensors
+
+def read_distance_sensors(sensors):
+    return {key: sensor.getValue() for key, sensor in sensors.items()}
