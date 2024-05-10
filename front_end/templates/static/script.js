@@ -87,6 +87,23 @@ function changeLidarStatus() {
     }
 }
 
+var cameraStatus = false;
+
+function changeCameraStatus() {
+    cameraStatus = !cameraStatus;
+    console.log("Camera Status:", cameraStatus);
+
+    var cameraButton = document.getElementById('toggleCameraButton');
+    cameraButton.className = 'camera-btn ' + (cameraStatus ? 'on' : 'off');
+    cameraButton.innerHTML = cameraStatus ? 'Camera ON' : 'Camera OFF';
+
+    if (cameraStatus) {
+        sendCommand("enable camera");
+    } else {
+        sendCommand("disable camera");
+    }
+}
+
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, 400);

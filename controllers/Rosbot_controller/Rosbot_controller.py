@@ -8,7 +8,6 @@ import functools
 
 async def control_robot(websocket, path, robot, motors, camera, accelerometer, position_sensors, prev_positions, timestep):
     print("WebSocket session started.")
-    image_task = asyncio.create_task(send_images(camera, websocket))  # Start sending images
     accelerometer_task = asyncio.create_task(send_accelerometer_data(accelerometer, websocket))  # Start sending accelerometer data
     velocity_task = asyncio.create_task(send_velocity_data(position_sensors, websocket, prev_positions, timestep))  # Start sending velocity data
     lidar = None
@@ -39,6 +38,10 @@ async def control_robot(websocket, path, robot, motors, camera, accelerometer, p
             elif message == 'disable lidar':
                 lidar.disable()
                 lidar_task.cancel()
+            elif message == 'enable camera':
+                image_task = asyncio.create_task(send_images(camera, websocket))
+            elif message == 'disable camera':
+                image_task.cancel()
             else:
                 continue
 
