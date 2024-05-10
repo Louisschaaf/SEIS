@@ -2,7 +2,6 @@ import asyncio
 from time import time
 robot = None
 CALIBRATION_SAMPLES = 100
-from robot_package.motors import calculate_velocity
 
 
 def setup_accelerometer(robot):
@@ -80,3 +79,6 @@ def setup_distance_sensors(robot):
 
 def read_distance_sensors(sensors):
     return {key: sensor.getValue() for key, sensor in sensors.items()}
+
+def calculate_velocity(current_position, previous_position, delta_t):
+    return (current_position - previous_position) / delta_t

@@ -1,21 +1,10 @@
 from controller import Robot
-from robot_package.motors import setup_motors
+from robot_package.motors import setup_motors, stop_all_motors, automatic_braking
 from robot_package.camera import setup_camera, capture_image, send_images
 from robot_package.sensors import setup_accelerometer, read_accelerometer, send_accelerometer_data, send_velocity_data, send_lidar_data, setup_lidar, read_distance_sensors, setup_distance_sensors
 import websockets
 import asyncio
 import functools
-
-BRAKING_DISTANCE = 0.3  # Distance at which the robot will stop automatically
-
-async def automatic_braking(motors, distance_sensors):
-    while True:
-        distances = read_distance_sensors(distance_sensors)
-        if any(distance < BRAKING_DISTANCE for distance in distances.values()):
-            for motor in motors.values():
-                motor.setVelocity(0.0)
-            print("Automatic braking triggered due to obstacle detection")
-        await asyncio.sleep(0.1)
 
 async def control_robot(websocket, path, robot, motors, camera, accelerometer, position_sensors, prev_positions, timestep, distance_sensors):
     print("WebSocket session started.")
@@ -54,11 +43,17 @@ async def control_robot(websocket, path, robot, motors, camera, accelerometer, p
                 image_task = asyncio.create_task(send_images(camera, websocket))
             elif message == 'disable camera':
                 image_task.cancel()
+            elif message == 'disconnect':
+                print("Disconnecting client.")
+                raise websockets.exceptions.ConnectionClosedError(1000, "Client requested disconnection")
             else:
                 continue
 
             for motor in motors.values():
                 motor.setVelocity(velocity)
+    except websockets.exceptions.ConnectionClosedError:
+        print("WebSocket connection closed.")
+        stop_all_motors(motors)
     finally:
         image_task.cancel()  # Ensure image task is cancelled
         accelerometer_task.cancel()

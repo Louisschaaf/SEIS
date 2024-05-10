@@ -1,3 +1,8 @@
+from robot_package.sensors import read_distance_sensors, setup_distance_sensors
+import asyncio
+
+BRAKING_DISTANCE = 0.3  # Distance at which the robot will stop automatically
+
 def setup_motors(robot):
     motors = {
         'front_left': robot.getDevice("front left wheel motor"),
@@ -28,6 +33,16 @@ def setup_motors(robot):
 
     return motors, position_sensors, prev_positions
 
+def stop_all_motors(motors):
+    """Stop all motors by setting their velocity to zero."""
+    for motor in motors.values():
+        motor.setVelocity(0)
 
-def calculate_velocity(current_position, previous_position, delta_t):
-    return (current_position - previous_position) / delta_t
+async def automatic_braking(motors, distance_sensors):
+    while True:
+        distances = read_distance_sensors(distance_sensors)
+        if any(distance < BRAKING_DISTANCE for distance in distances.values()):
+            for motor in motors.values():
+                motor.setVelocity(0.0)
+            print("Automatic braking triggered due to obstacle detection")
+        await asyncio.sleep(0.1)
