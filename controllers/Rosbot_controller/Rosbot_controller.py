@@ -6,11 +6,11 @@ import websockets
 import asyncio
 import functools
 
-async def control_robot(websocket, path, robot, motors, camera, accelerometer):
+async def control_robot(websocket, path, robot, motors, camera, accelerometer, position_sensors, prev_positions, timestep):
     print("WebSocket session started.")
     image_task = asyncio.create_task(send_images(camera, websocket))  # Start sending images
     accelerometer_task = asyncio.create_task(send_accelerometer_data(accelerometer, websocket))  # Start sending accelerometer data
-    velocity_task = asyncio.create_task(send_velocity_data(accelerometer, websocket))  # Start sending velocity data
+    velocity_task = asyncio.create_task(send_velocity_data(position_sensors, websocket, prev_positions, timestep))  # Start sending velocity data
     try:
         async for message in websocket:
             print(f"Received command: {message}")
@@ -40,19 +40,19 @@ async def control_robot(websocket, path, robot, motors, camera, accelerometer):
         accelerometer_task.cancel()
         velocity_task.cancel()
 
-async def run_websocket_server(robot, motors, camera, accelerometer):
-    async with websockets.serve(functools.partial(control_robot, robot=robot, motors=motors, camera=camera, accelerometer=accelerometer), "0.0.0.0", 8765):
+async def run_websocket_server(robot, motors, camera, accelerometer, position_sensors, prev_positions, timestep):
+    async with websockets.serve(functools.partial(control_robot, robot=robot, motors=motors, camera=camera, accelerometer=accelerometer, position_sensors=position_sensors, prev_positions=prev_positions, timestep=timestep), "0.0.0.0", 8765):
         await asyncio.Future()  # This will run forever unless cancelled
 
 def main(robot):
     timestep = int(robot.getBasicTimeStep())
-    motors = setup_motors(robot)
+    motors, position_sensors, prev_positions = setup_motors(robot)
     camera = setup_camera(robot)
     accelerometer = setup_accelerometer(robot)
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
-    server_task = loop.create_task(run_websocket_server(robot, motors, camera, accelerometer))
+    server_task = loop.create_task(run_websocket_server(robot, motors, camera, accelerometer, position_sensors, prev_positions, timestep))
 
     try:
         while robot.step(timestep) != -1:

@@ -2,6 +2,8 @@ import asyncio
 from time import time
 robot = None
 CALIBRATION_SAMPLES = 100
+from robot_package.motors import calculate_velocity
+
 
 def setup_accelerometer(robot):
     robot = robot
@@ -23,30 +25,23 @@ async def send_accelerometer_data(accelerometer, websocket):
             # Optionally, add reconnect or retry logic here
         await asyncio.sleep(0.1)  # Adjust delay to match desired update rate
 
-def update_velocity(accelerometer_data):
-    global velocity, last_timestamp
-    if last_timestamp is None:
-        last_timestamp = time()
+async def send_velocity_data(position_sensors, websocket, prev_positions, timestep):
+    delta_t = timestep / 1000.0  # Convert to seconds
 
-    current_timestamp = time()
-    delta_time = current_timestamp - last_timestamp
-
-    # Update velocity by integrating acceleration over time
-    velocity["x"] += accelerometer_data[0] * delta_time
-    velocity["y"] += accelerometer_data[1] * delta_time
-    velocity["z"] += accelerometer_data[2] * delta_time
-
-    last_timestamp = current_timestamp
-
-async def send_velocity_data(accelerometer, websocket):
     while True:
-        accelerometer_data = read_accelerometer(accelerometer)
-        print(f"accelerometer_data: {accelerometer_data}")
-        update_velocity(accelerometer_data)
-        print(f"velocity: {velocity}")
-        message = f"velocity: {velocity}"
-        try:
-            await websocket.send(message)
-        except Exception as e:
-            print(f"Failed to send velocity data: {e}")
-        await asyncio.sleep(0.1)
+        # Get the current positions
+        current_positions = {name: sensor.getValue() for name, sensor in position_sensors.items()}
+
+        # Calculate the velocities for each wheel
+        velocities = {
+            name: calculate_velocity(current_positions[name], prev_positions[name], delta_t)
+            for name in position_sensors
+        }
+
+        # Update previous positions
+        prev_positions.update(current_positions)
+
+        # Send the velocity data via WebSocket
+        await websocket.send(f"Wheel Velocities: {velocities}")
+
+        await asyncio.sleep(delta_t)

@@ -47,10 +47,29 @@ ws.onmessage = function(e) {
     else if (data.startsWith("velocity: ")) {
         console.log(data);
     }
+    else if (data.startsWith("Wheel Velocities: ")) {
+
+        // Extract and clean up the wheel velocity data
+        var wheelVelocities = extractWheelVelocities(data);
+        //compute average speed
+        var averageSpeed = (wheelVelocities.front_left + wheelVelocities.front_right + wheelVelocities.rear_left + wheelVelocities.rear_right) / 4;
+        console.log("Average Speed: " + averageSpeed);
+        // Display the average speed in the HTML element
+        document.getElementById('averageSpeed').innerHTML = "Average Speed: " + averageSpeed.toFixed(2) + " m/s";
+    }
     else {
         console.log('Server:', data);
     }
 };
+
+function extractWheelVelocities(velocityStr) {
+    // Extract the part after "Wheel Velocities: "
+    const jsonPart = velocityStr.replace("Wheel Velocities: ", "").trim();
+    // Replace single quotes with double quotes for valid JSON
+    const jsonString = jsonPart.replace(/'/g, '"');
+    // Parse the JSON string into an object
+    return JSON.parse(jsonString);
+}
 
 function sendCommand(command) {
     if (ws.readyState === WebSocket.OPEN) {
