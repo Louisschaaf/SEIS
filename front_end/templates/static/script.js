@@ -38,13 +38,9 @@ ws.onmessage = function(e) {
 
         document.getElementById('accelerometer').innerHTML = "Accelerometer (Non-Gravitational): " + accelNonGravity.toFixed(2) + " m/s²";
     }
-    else if (data.startsWith("velocity: ")) {
-        console.log(data);
-    }
     else if (data.startsWith("Wheel Velocities: ")) {
         var wheelVelocities = extractWheelVelocities(data);
         var averageSpeed = (wheelVelocities.front_left + wheelVelocities.front_right + wheelVelocities.rear_left + wheelVelocities.rear_right) / 4;
-        console.log("Average Speed: " + averageSpeed);
         document.getElementById('averageSpeed').innerHTML = "Average Speed: " + averageSpeed.toFixed(2) + " m/s";
     }
     else if (typeof e.data === "string" && e.data.startsWith("Lidar Point Cloud:")) {
@@ -74,6 +70,24 @@ function sendCommand(command) {
     }
 }
 
+var lidarStatus = false;
+
+function changeLidarStatus() {
+    lidarStatus = !lidarStatus;
+    console.log("Lidar Status:", lidarStatus);
+
+    var lidarButton = document.getElementById('toggleLidarButton');
+    lidarButton.className = 'lidar-btn ' + (lidarStatus ? 'on' : 'off');
+    lidarButton.innerHTML = lidarStatus ? 'Lidar ON' : 'Lidar OFF';
+
+    if (lidarStatus) {
+        sendCommand("enable lidar");
+    } else {
+        sendCommand("disable lidar");
+    }
+}
+
+
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, 400);
 document.getElementById('lidar-point-cloud').appendChild(renderer.domElement);
@@ -98,7 +112,6 @@ function updatePointCloud(vertices) {
 function parseLidarData(data) {
     const vertices = [];
     const pointCloudData = data.replace("Lidar Point Cloud:", "").trim();
-    console.log(pointCloudData);
     const pointCloudArray = pointCloudData.split("}, {").map(point => point.replace("{", "").replace("}", ""));
     pointCloudArray[0] = pointCloudArray[0].replace("[", "");
     pointCloudArray[pointCloudArray.length - 1] = pointCloudArray[pointCloudArray.length - 1].replace("]", "");
@@ -106,13 +119,11 @@ function parseLidarData(data) {
         const point = pointCloudArray[i].replace("'x': ", "").replace("'y': ", "").replace("'z': ","").split(", ").map(parseFloat);
         vertices.push(point[0], point[1], point[2]);
     }
-    console.log(vertices);
     return vertices;
 }
 
 function parseLidarArrayBuffer(buffer) {
     const floatArray = new Float32Array(buffer);
-    console.log(floatArray);
     const vertices = [];
 
     for (let i = 0; i < floatArray.length; i += 3) {

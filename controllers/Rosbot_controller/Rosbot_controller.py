@@ -6,14 +6,16 @@ import websockets
 import asyncio
 import functools
 
-async def control_robot(websocket, path, robot, motors, camera, accelerometer, position_sensors, prev_positions, timestep, lidar):
+async def control_robot(websocket, path, robot, motors, camera, accelerometer, position_sensors, prev_positions, timestep):
     print("WebSocket session started.")
     image_task = asyncio.create_task(send_images(camera, websocket))  # Start sending images
     accelerometer_task = asyncio.create_task(send_accelerometer_data(accelerometer, websocket))  # Start sending accelerometer data
     velocity_task = asyncio.create_task(send_velocity_data(position_sensors, websocket, prev_positions, timestep))  # Start sending velocity data
-    lidar_task = asyncio.create_task(send_lidar_data(lidar, websocket, timestep))  # Start sending lidar data
+    lidar = None
+    lidar_task = None
     try:
         async for message in websocket:
+            velocity = 0.0
             print(f"Received command: {message}")
             if message == 'forward':
                 velocity = 5.0
@@ -31,6 +33,12 @@ async def control_robot(websocket, path, robot, motors, camera, accelerometer, p
                 continue
             elif message == 'stop':
                 velocity = 0.0
+            elif message == 'enable lidar':
+                lidar = setup_lidar(robot)
+                lidar_task = asyncio.create_task(send_lidar_data(lidar, websocket, timestep))  # Start sending lidar data
+            elif message == 'disable lidar':
+                lidar.disable()
+                lidar_task.cancel()
             else:
                 continue
 
@@ -40,10 +48,12 @@ async def control_robot(websocket, path, robot, motors, camera, accelerometer, p
         image_task.cancel()  # Ensure image task is cancelled
         accelerometer_task.cancel()
         velocity_task.cancel()
-        lidar_task.cancel()
+        if lidar is not None:
+            lidar.disable()
+            lidar_task.cancel()
 
-async def run_websocket_server(robot, motors, camera, accelerometer, position_sensors, prev_positions, timestep, lidar):
-    async with websockets.serve(functools.partial(control_robot, robot=robot, motors=motors, camera=camera, accelerometer=accelerometer, position_sensors=position_sensors, prev_positions=prev_positions, timestep=timestep, lidar=lidar), "0.0.0.0", 8765):
+async def run_websocket_server(robot, motors, camera, accelerometer, position_sensors, prev_positions, timestep):
+    async with websockets.serve(functools.partial(control_robot, robot=robot, motors=motors, camera=camera, accelerometer=accelerometer, position_sensors=position_sensors, prev_positions=prev_positions, timestep=timestep), "0.0.0.0", 8765):
         await asyncio.Future()  # This will run forever unless cancelled
 
 def main(robot):
@@ -51,12 +61,11 @@ def main(robot):
     motors, position_sensors, prev_positions = setup_motors(robot)
     camera = setup_camera(robot)
     accelerometer = setup_accelerometer(robot)
-    lidar = setup_lidar(robot)
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
-    server_task = loop.create_task(run_websocket_server(robot, motors, camera, accelerometer, position_sensors, prev_positions, timestep, lidar))
+    server_task = loop.create_task(run_websocket_server(robot, motors, camera, accelerometer, position_sensors, prev_positions, timestep))
 
     try:
         while robot.step(timestep) != -1:

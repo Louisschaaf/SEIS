@@ -21,6 +21,9 @@
                 <button class="control-btn" onclick="sendCommand('brake')">⏹️</button>
             </div>
         </div>
+        <div class="sensors">
+            <button id="toggleLidarButton" class="lidar-btn off" onclick="changeLidarStatus()">Lidar</button>
+        </div>
         <div class="terminal" id="lidar-terminal">
             <h2>LIDAR Data Terminal</h2>
             <div id="lidar-point-cloud" style="width: 100% !important; height: 400px;"></div>
