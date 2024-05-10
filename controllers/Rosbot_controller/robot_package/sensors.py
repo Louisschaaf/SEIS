@@ -45,3 +45,23 @@ async def send_velocity_data(position_sensors, websocket, prev_positions, timest
         await websocket.send(f"Wheel Velocities: {velocities}")
 
         await asyncio.sleep(delta_t)
+
+def setup_lidar(robot):
+    lidar = robot.getDevice("lidar")
+    lidar.enable(int(robot.getBasicTimeStep()))
+    lidar.enablePointCloud()
+    print("Lidar enabled")
+    return lidar
+
+async def send_lidar_data(lidar, websocket, timestep):
+    while True:
+        # Get the point cloud data
+        point_cloud = lidar.getPointCloud()
+
+        # Prepare the point cloud data for JSON
+        point_cloud_data = [{"x": point.x, "y": point.y, "z": point.z} for point in point_cloud]
+
+        # Send the point cloud data via WebSocket
+        await websocket.send(f"Lidar Point Cloud: {point_cloud_data}")
+
+        await asyncio.sleep(timestep / 1000.0) 

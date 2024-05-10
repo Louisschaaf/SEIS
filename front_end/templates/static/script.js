@@ -1,4 +1,4 @@
-var ws = new WebSocket("ws://localhost:8765/"); // Make sure this matches the address and port of your WebSocket server in the Webots controller
+var ws = new WebSocket("ws://localhost:8765/");
 
 ws.onopen = function() {
     console.log('WebSocket Connection Established');
@@ -10,64 +10,58 @@ ws.onerror = function(error) {
 
 ws.onmessage = function(e) {
     var data = e.data;
-    if (data.startsWith("/9j/")) { // Check if the string looks like base64 JPEG data
+    if (data.startsWith("/9j/")) {
         var img = document.getElementById('robotCameraFeed');
         img.src = 'data:image/jpeg;base64,' + data;
     }
     else if (data.startsWith("accelerometer: ")) {
-        // Extract and clean up the accelerometer data
         var accelDataString = data.replace("accelerometer: [", "").replace("]", "");
         var accelData = accelDataString.split(", ").map(parseFloat);
-    
-        // Extract individual components
+
         var x = accelData[0];
         var y = accelData[1];
         var z = accelData[2];
-    
-        // Assume the gravity vector is in the Z direction
+
         var gravityVector = [0, 0, 9.81];
-    
-        // Subtract gravity from the accelerometer data
+
         var nonGravitationalAccel = [
             x - gravityVector[0],
             y - gravityVector[1],
             z - gravityVector[2]
         ];
-    
-        // Compute the magnitude of the non-gravitational acceleration
+
         var accelNonGravity = Math.sqrt(
             nonGravitationalAccel[0] * nonGravitationalAccel[0] +
             nonGravitationalAccel[1] * nonGravitationalAccel[1] +
             nonGravitationalAccel[2] * nonGravitationalAccel[2]
         );
-    
-        // Display the non-gravitational magnitude in the HTML element
+
         document.getElementById('accelerometer').innerHTML = "Accelerometer (Non-Gravitational): " + accelNonGravity.toFixed(2) + " m/s²";
     }
     else if (data.startsWith("velocity: ")) {
         console.log(data);
     }
     else if (data.startsWith("Wheel Velocities: ")) {
-
-        // Extract and clean up the wheel velocity data
         var wheelVelocities = extractWheelVelocities(data);
-        //compute average speed
         var averageSpeed = (wheelVelocities.front_left + wheelVelocities.front_right + wheelVelocities.rear_left + wheelVelocities.rear_right) / 4;
         console.log("Average Speed: " + averageSpeed);
-        // Display the average speed in the HTML element
         document.getElementById('averageSpeed').innerHTML = "Average Speed: " + averageSpeed.toFixed(2) + " m/s";
     }
-    else {
+    else if (typeof e.data === "string" && e.data.startsWith("Lidar Point Cloud:")) {
+        const vertices = parseLidarData(e.data);
+        if (vertices) {
+            updatePointCloud(vertices);
+        }
+    } else if (e.data instanceof ArrayBuffer) {
+        updatePointCloud(parseLidarArrayBuffer(e.data));
+    } else {
         console.log('Server:', data);
     }
 };
 
 function extractWheelVelocities(velocityStr) {
-    // Extract the part after "Wheel Velocities: "
     const jsonPart = velocityStr.replace("Wheel Velocities: ", "").trim();
-    // Replace single quotes with double quotes for valid JSON
     const jsonString = jsonPart.replace(/'/g, '"');
-    // Parse the JSON string into an object
     return JSON.parse(jsonString);
 }
 
@@ -79,3 +73,58 @@ function sendCommand(command) {
         console.log("WebSocket is not open.");
     }
 }
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, 400);
+document.getElementById('lidar-point-cloud').appendChild(renderer.domElement);
+
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / 400, 0.1, 1000);
+const scene = new THREE.Scene();
+
+const pointGeometry = new THREE.BufferGeometry();
+const pointsMaterial = new THREE.PointsMaterial({ color: 0x888888, size: 0.1 });
+const pointCloud = new THREE.Points(pointGeometry, pointsMaterial);
+scene.add(pointCloud);
+
+camera.position.set(0, 0, 10);
+camera.lookAt(scene.position);
+
+function updatePointCloud(vertices) {
+    pointGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    pointGeometry.computeBoundingSphere();
+    renderer.render(scene, camera);
+}
+
+function parseLidarData(data) {
+    const vertices = [];
+    const pointCloudData = data.replace("Lidar Point Cloud:", "").trim();
+    console.log(pointCloudData);
+    const pointCloudArray = pointCloudData.split("}, {").map(point => point.replace("{", "").replace("}", ""));
+    pointCloudArray[0] = pointCloudArray[0].replace("[", "");
+    pointCloudArray[pointCloudArray.length - 1] = pointCloudArray[pointCloudArray.length - 1].replace("]", "");
+    for (let i = 0; i < pointCloudArray.length; i++) {
+        const point = pointCloudArray[i].replace("'x': ", "").replace("'y': ", "").replace("'z': ","").split(", ").map(parseFloat);
+        vertices.push(point[0], point[1], point[2]);
+    }
+    console.log(vertices);
+    return vertices;
+}
+
+function parseLidarArrayBuffer(buffer) {
+    const floatArray = new Float32Array(buffer);
+    console.log(floatArray);
+    const vertices = [];
+
+    for (let i = 0; i < floatArray.length; i += 3) {
+        vertices.push(floatArray[i], floatArray[i + 1], floatArray[i + 2]);
+    }
+
+    return vertices;
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+    renderer.render(scene, camera);
+}
+
+animate();

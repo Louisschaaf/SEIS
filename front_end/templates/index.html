@@ -23,7 +23,7 @@
         </div>
         <div class="terminal" id="lidar-terminal">
             <h2>LIDAR Data Terminal</h2>
-            <p><span id="lidar">Waiting for data...</span></p>
+            <div id="lidar-point-cloud" style="width: 100% !important; height: 400px;"></div>
         </div>
         <div class="terminal" id="infrared-terminal">
             <h2>Infrared Data Terminal</h2>
@@ -35,6 +35,7 @@
             <img id="robotCameraFeed" src="" alt="Camera feed not available">
         </div>
     </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="static/script.js"></script>
 </body>
 </html>

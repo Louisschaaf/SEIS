@@ -76,3 +76,7 @@ h1, h2 {
     height: auto;
     border-radius: 5px;
 }
+
+canvas {
+    width: 100% !important;
+}
