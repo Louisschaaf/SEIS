@@ -69,7 +69,6 @@ async def send_lidar_data(lidar, websocket, timestep):
         await asyncio.sleep(timestep / 1000.0)  # Wait for the next set of data
 
 
-
 def setup_distance_sensors(robot):
     sensors = {
         'front left': robot.getDevice('front left distance sensor'),

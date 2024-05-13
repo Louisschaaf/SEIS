@@ -8,6 +8,7 @@ import functools
 
 async def control_robot(websocket, path, robot, motors, camera, accelerometer, position_sensors, prev_positions, timestep, distance_sensors):
     print("WebSocket session started.")
+    
     accelerometer_task = asyncio.create_task(send_accelerometer_data(accelerometer, websocket))  # Start sending accelerometer data
     velocity_task = asyncio.create_task(send_velocity_data(position_sensors, websocket, prev_positions, timestep))  # Start sending velocity data
     braking_task = asyncio.create_task(automatic_braking(motors, distance_sensors))  # Start automatic braking
@@ -63,7 +64,7 @@ async def control_robot(websocket, path, robot, motors, camera, accelerometer, p
             lidar_task.cancel()
 
 async def run_websocket_server(robot, motors, camera, accelerometer, position_sensors, prev_positions, timestep, distance_sensors):
-    async with websockets.serve(functools.partial(control_robot, robot=robot, motors=motors, camera=camera, accelerometer=accelerometer, position_sensors=position_sensors, prev_positions=prev_positions, timestep=timestep, distance_sensors=distance_sensors), "0.0.0.0", 8765):
+    async with websockets.serve(functools.partial(control_robot, robot=robot, motors=motors, camera=camera, accelerometer=accelerometer, position_sensors=position_sensors, prev_positions=prev_positions, timestep=timestep, distance_sensors=distance_sensors), "localhost", 8765):
         await asyncio.Future()  # This will run forever unless cancelled
 
 def main(robot):
