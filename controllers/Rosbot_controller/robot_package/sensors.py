@@ -54,16 +54,21 @@ def setup_lidar(robot):
 
 async def send_lidar_data(lidar, websocket, timestep):
     while True:
-        # Get the point cloud data
-        point_cloud = lidar.getPointCloud()
+        try:
+            point_cloud = lidar.getPointCloud()
+            if point_cloud:  # Ensure there is data to process
+                point_cloud_data = [{"x": point.x, "y": point.y, "z": point.z} for point in point_cloud]
+                await websocket.send(f"Lidar Point Cloud: {point_cloud_data}")
+            else:
+                print("No lidar data available.")
+        except Exception as e:
+            print(f"Failed to send lidar data: {e}")
+            # Optionally, add reconnect or retry logic here
+            break  # or handle reconnection
 
-        # Prepare the point cloud data for JSON
-        point_cloud_data = [{"x": point.x, "y": point.y, "z": point.z} for point in point_cloud]
+        await asyncio.sleep(timestep / 1000.0)  # Wait for the next set of data
 
-        # Send the point cloud data via WebSocket
-        await websocket.send(f"Lidar Point Cloud: {point_cloud_data}")
 
-        await asyncio.sleep(timestep / 1000.0) 
 
 def setup_distance_sensors(robot):
     sensors = {

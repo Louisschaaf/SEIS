@@ -11,8 +11,7 @@ async def control_robot(websocket, path, robot, motors, camera, accelerometer, p
     accelerometer_task = asyncio.create_task(send_accelerometer_data(accelerometer, websocket))  # Start sending accelerometer data
     velocity_task = asyncio.create_task(send_velocity_data(position_sensors, websocket, prev_positions, timestep))  # Start sending velocity data
     braking_task = asyncio.create_task(automatic_braking(motors, distance_sensors))  # Start automatic braking
-    lidar = None
-    lidar_task = None
+    
     try:
         async for message in websocket:
             velocity = 0.0
